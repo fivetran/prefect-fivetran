@@ -47,7 +47,7 @@ class FivetranCredentials(Block):
         """
         Returns api_key and api_secret for Fivetran object
         """
-        return Fivetran(
+        return FivetranClient(
             api_key=self.api_key.get_secret_value(),
             api_secret=self.api_secret.get_secret_value(),
         )

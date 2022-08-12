@@ -18,8 +18,9 @@ class FivetranClient:
         api_key: API key to authenticate with the Fivetran API.
         api_secret: API secret to authenticate with the Fivetran API.
     """
+
     def __init__(
-        self, 
+        self,
         api_key: str,
         api_secret: str,
     ):
@@ -32,7 +33,9 @@ class FivetranClient:
         headers = {"User-Agent": self.api_user_agent}
 
         self.session = requests.Session()
-        self.session.hooks = {"response": lambda r, *args, **kwargs: r.raise_for_status()}
+        self.session.hooks = {
+            "response": lambda r, *args, **kwargs: r.raise_for_status()
+        }
         self.session.auth = (api_key, api_secret)
         self.session.headers = headers
 
@@ -78,7 +81,7 @@ class FivetranClient:
                 + "please complete setup at {}"
             )
             raise ValueError(EXC_SETUP.format(connector_id, setup_state, URL_SETUP))
-        
+
         return resp
 
     def set_schedule_type(
@@ -115,17 +118,16 @@ class FivetranClient:
             )
         return resp
 
-
     def force_sync(
         self,
-        connector_id: str, 
-        ) -> str:
+        connector_id: str,
+    ) -> str:
         """
         Start a Fivetran data sync
 
         Args:
             connector_id: ID of the Fivetran connector with which to interact.
-        
+
         Returns:
             The timestamp of the end of the connector's last run, or now if it has not yet run.
         """
@@ -137,7 +139,7 @@ class FivetranClient:
         connector_details = resp.json()["data"]
         succeeded_at = connector_details["succeeded_at"]
         failed_at = connector_details["failed_at"]
-        
+
         if connector_details["paused"] == True:
             self.session.patch(
                 URL_CONNECTOR,
@@ -146,23 +148,25 @@ class FivetranClient:
             )
 
         if succeeded_at == None and failed_at == None:
-             succeeded_at = str(pendulum.now())
-        
+            succeeded_at = str(pendulum.now())
+
         last_sync = (
             succeeded_at
             if self._parse_timestamp(succeeded_at) > self._parse_timestamp(failed_at)
             else failed_at
-        ) 
-        self.session.post("https://api.fivetran.com/v1/connectors/" + connector_id + "/force")
-  
+        )
+        self.session.post(
+            "https://api.fivetran.com/v1/connectors/" + connector_id + "/force"
+        )
+
         return last_sync
 
     def finish_sync(
         self,
-        connector_id: str, 
+        connector_id: str,
         previous_completed_at: pendulum.datetime.DateTime,
         poll_status_every_n_seconds: int = 15,
-        ) -> dict:
+    ) -> dict:
         """
         Wait for the previously started Fivetran connector to finish.
 
@@ -219,22 +223,22 @@ class FivetranClient:
 
     async def sync(
         self,
-        connector_id: str, 
+        connector_id: str,
         schedule_type: str = "manual",
         poll_status_every_n_seconds: int = 15,
     ) -> dict:
-    """
-    Run a Fivetran connector data sync and wait for its completion.
+        """
+        Run a Fivetran connector data sync and wait for its completion.
 
-    Args:
-        connector_id: ID of the Fivetran connector with which to interact.
-        schedule_type: Connector syncs periodically on Fivetran's schedule (auto),
+        Args:
+            connector_id: ID of the Fivetran connector with which to interact.
+            schedule_type: Connector syncs periodically on Fivetran's schedule (auto),
                 or whenever called by the API (manual).
-        poll_status_every_n_seconds: Frequency in which Prefect will check status of
+            poll_status_every_n_seconds: Frequency in which Prefect will check status of
                 Fivetran connector's sync completion
-    Returns:
+        Returns:
             Dict containing the timestamp of the end of the connector's run and its ID.
-    """
+        """
         if check_connector(connector_id):
             set_schedule_type(connector_id, schedule_type)
             previous_completed_at = force_sync(connector_id)
