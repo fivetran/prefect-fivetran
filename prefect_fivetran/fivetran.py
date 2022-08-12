@@ -7,7 +7,6 @@ from prefect import task
 
 from prefect_fivetran.credentials import FivetranCredentials
 
-
 @task
 async def sync_task(
     connector_id: str,
@@ -24,15 +23,15 @@ async def sync_task(
         Run a Fivetran connector in Prefect
         ```python
         from prefect import flow
-        from prefect_fivetran import FivetranCredentials
-        from prefect_fivetran import fivetran.sync
+        from prefect_fivetran.credentials import FivetranCredentials
+        from prefect_fivetran.client import FivetranClient
         @flow
         def fivetran_sync_flow():
             fivetran_credentials = FivetranCredentials(
                 api_key="my_api_key",
                 api_secret="my_api_secret",
             )
-            result = fivetran.sync(
+            result = FivetranClient.sync(
                 connector_id="my_connector_id",
                 fivetran_credentials=fivetran_credentials
             )

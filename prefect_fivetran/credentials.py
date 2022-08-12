@@ -28,12 +28,12 @@ class FivetranCredentials(Block):
         Load saved Fivetran credentials within a flow:
         ```python
         from prefect import flow
-        from prefect_fivetran import FivetranCredentials
-        from prefect_fivetran import sync
+        from prefect_fivetran.credentials import FivetranCredentials
+        from prefect_fivetran.client import FivetranClient
         @flow
         def fivetran_sync_flow():
             credentials = FivetranCredentials.load("my-fivetran-credentials")
-            trigger_dbt_cloud_job_run(fivetran_credentials=credentials, connector_id="my_connector_id")
+            FivetranClient.sync(fivetran_credentials=credentials, connector_id="my_connector_id")
         fivetran_sync_flow()
         ```
     """
