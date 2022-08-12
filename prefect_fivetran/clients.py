@@ -12,7 +12,12 @@ from httpx import AsyncClient, Response
 
 
 class FivetranClient:
-
+    """
+    Client for interacting with the Fivetran API.
+    Args:
+        api_key: API key to authenticate with the Fivetran API.
+        api_secret: API secret to authenticate with the Fivetran API.
+    """
     def __init__(
         self, 
         api_key: str,
@@ -43,6 +48,15 @@ class FivetranClient:
         )
 
     def check_connector(self, connector_id: str) -> requests.models.Response:
+        """
+        Ensure connector exists and is reachable.
+
+        Args:
+            connector_id: ID of the Fivetran connector with which to interact.
+
+        Returns:
+            The response from the Fivetran API.
+        """
         if not self.connector_id:
             raise ValueError("Value for parameter `connector_id` must be provided.")
         URL_CONNECTOR: str = "https://api.fivetran.com/v1/connectors/{}".format(
@@ -71,7 +85,19 @@ class FivetranClient:
         self,
         connector_id: str,
         schedule_type: str = "manual",
-    ):
+    ) -> requests.models.Response:
+        """
+        Take connector off Fivetran's schedule so that it can be controlled in Prefect.
+        Can also be used to place connector back on Fivetran's schedule (schedule_type = "auto").
+
+        Args:
+            connector_id: ID of the Fivetran connector with which to interact.
+            schedule_type: Connector syncs periodically on Fivetran's schedule (auto),
+                or whenever called by the API (manual).
+
+        Returns:
+            The response from the Fivetran API.
+        """
         if schedule_type not in ["manual", "auto"]:
             raise ValueError('schedule_type must be either "manual" or "auto"')
 
@@ -93,8 +119,16 @@ class FivetranClient:
     def force_sync(
         self,
         connector_id: str, 
-        ):
+        ) -> str:
+        """
+        Start a Fivetran data sync
+
+        Args:
+            connector_id: ID of the Fivetran connector with which to interact.
         
+        Returns:
+            The timestamp of the end of the connector's last run, or now if it has not yet run.
+        """
         URL_CONNECTOR: str = "https://api.fivetran.com/v1/connectors/{}".format(
             connector_id
         )
@@ -128,8 +162,19 @@ class FivetranClient:
         connector_id: str, 
         previous_completed_at: pendulum.datetime.DateTime,
         poll_status_every_n_seconds: int = 15,
-        ):
-        
+        ) -> dict:
+        """
+        Wait for the previously started Fivetran connector to finish.
+
+        Args:
+            connector_id: ID of the Fivetran connector with which to interact.
+            previous_completed_at: Time of the end of the connector's last run
+            poll_status_every_n_seconds: Frequency in which Prefect will check status of
+                Fivetran connector's sync completion
+
+        Returns:
+            Dict containing the timestamp of the end of the connector's run and its ID.
+        """
         URL_CONNECTOR: str = "https://api.fivetran.com/v1/connectors/{}".format(
             connector_id
         )
@@ -146,7 +191,7 @@ class FivetranClient:
             )
             # The only way to tell if a sync failed is to check if its latest failed_at value
             # is greater than then last known "sync completed at" value.
-            if failed_at > previous_completed_at:
+            if failed_at > parse_timestamp(previous_completed_at):
                 raise ValueError(
                     'Fivetran sync for connector "{}" failed; please see logs at {}'.format(
                         connector_id, URL_LOGS
@@ -162,19 +207,33 @@ class FivetranClient:
                     connector_id, sync_state
                 )
             )
-            if current_completed_at > previous_completed_at:
+            if current_completed_at > parse_timestamp(previous_completed_at):
                 loop = False
             else:
                 time.sleep(poll_status_every_n_seconds)
+
+        return {
+            "succeeded_at": succeeded_at.to_iso8601_string(),
+            "connector_id": connector_id,
+        }
 
     async def sync(
         self,
         connector_id: str, 
         schedule_type: str = "manual",
         poll_status_every_n_seconds: int = 15,
-    ):
+    ) -> dict:
     """
+    Run a Fivetran connector data sync and wait for its completion.
 
+    Args:
+        connector_id: ID of the Fivetran connector with which to interact.
+        schedule_type: Connector syncs periodically on Fivetran's schedule (auto),
+                or whenever called by the API (manual).
+        poll_status_every_n_seconds: Frequency in which Prefect will check status of
+                Fivetran connector's sync completion
+    Returns:
+            Dict containing the timestamp of the end of the connector's run and its ID.
     """
         if check_connector(connector_id):
             set_schedule_type(connector_id, schedule_type)
