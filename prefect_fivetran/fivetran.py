@@ -11,14 +11,14 @@ from prefect_fivetran.credentials import FivetranCredentials
 async def sync_task(
     connector_id: str,
     fivetran_credentials: "FivetranCredentials",
-) -> List[Tuple[Any]]:
+) -> Dict:
     """
     Executes a query against a Snowflake database.
     Args:
         connector_id: The id of the Fivetran connector to use in Prefect.
         fivetran_credentials: The credentials to use to authenticate.
     Returns:
-        The output of `response.fetchall()`.
+        Dict containing the timestamp of the end of the connector's run and its ID.
     Examples:
         Run a Fivetran connector in Prefect
         ```python
