@@ -162,71 +162,30 @@ class FivetranClient:
 
         return last_sync
 
-    def finish_sync(
+    async def get_connector(
         self,
         connector_id: str,
-        previous_completed_at: pendulum.datetime.DateTime,
-        poll_status_every_n_seconds: int = 15,
-    ) -> dict:
+    ) -> Dict:
         """
-        Wait for the previously started Fivetran connector to finish.
+        Retrieve Fivetran connector to details.
 
         Args:
             connector_id: ID of the Fivetran connector with which to interact.
-            previous_completed_at: Time of the end of the connector's last run
-            poll_status_every_n_seconds: Frequency in which Prefect will check status of
-                Fivetran connector's sync completion
-
         Returns:
-            Dict containing the timestamp of the end of the connector's run and its ID.
+            Dict containing the details of a Fivetran connector
         """
         URL_CONNECTOR: str = "https://api.fivetran.com/v1/connectors/{}".format(
             connector_id
         )
 
-        loop: bool = True
-        while loop:
-            resp = self.session.get(URL_CONNECTOR)
-            current_details = resp.json()["data"]
-            # Failsafe, in case we missed a state transition – it is possible with a long enough
-            # `poll_status_every_n_seconds` we could completely miss the 'syncing' state
-            succeeded_at = self.parse_timestamp(current_details["succeeded_at"])
-            failed_at = self.parse_timestamp(current_details["failed_at"])
-            current_completed_at = (
-                succeeded_at if succeeded_at > failed_at else failed_at
-            )
-            # The only way to tell if a sync failed is to check if its latest failed_at value
-            # is greater than then last known "sync completed at" value.
-            if failed_at > self.parse_timestamp(previous_completed_at):
-                raise ValueError(
-                    'Fivetran sync for connector "{}" failed; please see logs at {}'.format(
-                        connector_id,
-                        "https://fivetran.com/dashboard/connectors/{}/{}/logs".format(
-                            current_details["service"], current_details["schema"]
-                        )
-                    )
-                )
-            # Started sync will spend some time in the 'scheduled' state before
-            # transitioning to 'syncing'.
-            # Capture the transition from 'scheduled' to 'syncing' or 'rescheduled',
-            # and then back to 'scheduled' on completion.
-            sync_state = current_details["status"]["sync_state"]
-            if current_completed_at > self.parse_timestamp(previous_completed_at):
-                loop = False
-            else:
-                time.sleep(poll_status_every_n_seconds)
-
-        return {
-            "succeeded_at": succeeded_at.to_iso8601_string(),
-            "connector_id": connector_id,
-        }
+        return await self.session.get(URL_CONNECTOR).json()["data"]
 
     async def sync(
         self,
         connector_id: str,
         schedule_type: str = "manual",
         poll_status_every_n_seconds: int = 15,
-    ) -> dict:
+    ) -> str:
         """
         Run a Fivetran connector data sync and wait for its completion.
 
@@ -237,9 +196,8 @@ class FivetranClient:
             poll_status_every_n_seconds: Frequency in which Prefect will check status of
                 Fivetran connector's sync completion
         Returns:
-            Dict containing the timestamp of the end of the connector's run and its ID.
+            The timestamp of the end of the connector's last run as a string, or now if it has not yet run.
         """
         if self.check_connector(connector_id):
             self.set_schedule_type(connector_id, schedule_type)
-            previous_completed_at = self.force_sync(connector_id)
-            return await self.finish_sync(connector_id, previous_completed_at)
+            return self.force_sync(connector_id)
