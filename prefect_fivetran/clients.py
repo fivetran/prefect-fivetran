@@ -180,7 +180,7 @@ class FivetranClient:
 
         return await self.session.get(URL_CONNECTOR).json()["data"]
 
-    async def sync(
+    def sync(
         self,
         connector_id: str,
         schedule_type: str = "manual",
