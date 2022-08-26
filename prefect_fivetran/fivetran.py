@@ -237,7 +237,7 @@ async def fivetran_sync_flow(
     fivetran_client = FivetranClient(
         fivetran_credentials=FivetranCredentials,
     )
-    last_sync = start_fivetran_sync(
+    last_sync = await start_fivetran_sync(
         connector_id=connector_id,
         fivetran_client=fivetran_client,
     )
