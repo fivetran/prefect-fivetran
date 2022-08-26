@@ -3,7 +3,7 @@
 import asyncio
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from prefect import task, flow
+from prefect import task, get_run_logger, flow
 from pendulum.datetime import DateTime
 
 from prefect_fivetran.clients import FivetranClient
@@ -15,7 +15,7 @@ from prefect_fivetran.clients import FivetranClient
     retries=3,
     retry_delay_seconds=10,
 )
-def start_fivetran_sync(
+async def start_fivetran_sync(
     connector_id: str,
     fivetran_client: FivetranClient,
     schedule_type: str = "manual",
@@ -42,7 +42,7 @@ def start_fivetran_sync(
                     api_secret="my_api_secret",
                 )
             )
-            last_sync = start_fivetran_sync(
+            last_sync = await start_fivetran_sync(
                 connector_id="my_connector_id",
                 fivetran_client=fivetran_client
             )
@@ -50,6 +50,36 @@ def start_fivetran_sync(
         fivetran_sync_flow()
         ```
     """
+    logger = get_run_logger()
+    logger.info(f"Triggering Fivetran data sync for connector {connector_id}")
+    connector_details = await fivetran_client.get_connector(connector_id)
+    logger.info(
+        "Connector type: {}, connector schema: {}".format(
+            connector_details["service"], connector_details["schema"]
+        )
+    )
+    logger.info(
+        "Connectors logs at {}".format(
+            "https://fivetran.com/dashboard/connectors/{}/{}/logs".format(
+                connector_details["service"], connector_details["schema"]
+            )
+        )
+    )
+    setup_state = connector_details["status"]["setup_state"]
+    if setup_state != "connected":
+        EXC_SETUP: str = (
+            'Fivetran connector "{}" not correctly configured, status: {}; '
+            + "please complete setup at {}"
+        )
+        raise ValueError(
+            EXC_SETUP.format(
+                connector_id,
+                setup_state,
+                "https://fivetran.com/dashboard/connectors/{}/{}/setup".format(
+                    connector_details["service"], connector_details["schema"]
+                ),
+            )
+        )
     return fivetran_client.sync(connector_id=connector_id)
 
 
@@ -91,20 +121,20 @@ async def finish_fivetran_sync(
                     api_secret="my_api_secret",
                 )
             )
-            last_sync = start_fivetran_sync(
+            last_sync = await start_fivetran_sync(
                 connector_id="my_connector_id",
                 fivetran_client=fivetran_client,
             )
-            result = finish_fivetran_sync(
+            return await finish_fivetran_sync(
                 connector_id="my_connector_id",
                 fivetran_client=fivetran_client,
                 previous_completed_at=last_sync,
                 poll_status_every_n_seconds=60,
             )
-            return result
         fivetran_sync_flow()
         ```
     """
+    logger = get_run_logger()
     loop: bool = True
     while loop:
         current_details = await fivetran_client.get_connector(connector_id=connector_id)
@@ -127,6 +157,9 @@ async def finish_fivetran_sync(
         # Capture the transition from 'scheduled' to 'syncing' or 'rescheduled',
         # and then back to 'scheduled' on completion.
         sync_state = current_details["status"]["sync_state"]
+        logger.info(
+            'Connector "{}" current sync_state = {}'.format(connector_id, sync_state)
+        )
         if current_completed_at > fivetran_client.parse_timestamp(
             previous_completed_at
         ):
@@ -134,8 +167,8 @@ async def finish_fivetran_sync(
         else:
             await asyncio.sleep(poll_status_every_n_seconds)
     return {
-            "succeeded_at": succeeded_at.to_iso8601_string(),
-            "connector_id": connector_id,
+        "succeeded_at": succeeded_at.to_iso8601_string(),
+        "connector_id": connector_id,
     }
 
 
@@ -193,7 +226,7 @@ async def fivetran_sync_flow(
                 api_key="my_api_key",
                 api_secret="my_api_secret",
             )
-            fivetran_result=fivetran_sync_flow(
+            fivetran_result=await fivetran_sync_flow(
                 fivetran_credentials=fivetran_credentials,
                 connector_id="my_connector_id",
             )
