@@ -1,15 +1,9 @@
 """Module containing clients for interacting with the dbt Cloud API"""
 import json
-import time
+from typing import Dict
 
-import requests
 import pendulum
-
-from pendulum.datetime import DateTime
-from typing import Any, Dict, Optional
-
-import prefect
-from httpx import AsyncClient, Response
+import requests
 
 
 class FivetranClient:

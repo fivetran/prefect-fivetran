@@ -1,10 +1,9 @@
 """Module for running Fivetran data syncs."""
 
 import asyncio
-from typing import Any, Dict, List, Optional, Tuple, Union
 
-from prefect import task, get_run_logger, flow
 from pendulum.datetime import DateTime
+from prefect import flow, get_run_logger, task
 
 from prefect_fivetran.clients import FivetranClient
 
@@ -185,6 +184,7 @@ async def fivetran_sync_flow(
 ) -> Dict:
     """
     Flow that triggers a connector sync and waits for the sync to complete.
+
     Args:
         fivetran_credentials: Credentials for authenticating with Fivetran.
         connector_id: The ID of the Fivetran connector to trigger.
@@ -192,8 +192,10 @@ async def fivetran_sync_flow(
                 or whenever called by the API ("manual").
         poll_status_every_n_seconds: Number of seconds to wait in between checks for
             sync completion.
+
     Returns:
         Dict containing the timestamp of the end of the connector's run and its ID.
+
     Examples:
         Trigger a dbt Cloud job and wait for completion as a stand alone flow:
         ```python
@@ -235,7 +237,7 @@ async def fivetran_sync_flow(
         ```
     """
     fivetran_client = FivetranClient(
-        fivetran_credentials=FivetranCredentials,
+        fivetran_credentials=fivetranCredentials,
     )
     last_sync = await start_fivetran_sync(
         connector_id=connector_id,

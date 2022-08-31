@@ -8,16 +8,19 @@ from prefect_fivetran.client import FivetranClient
 class FivetranCredentials(Block):
     """
     Credentials block for credential use across Fivetran tasks and flows.
+
     Args:
         api_key (SecretStr): [Fivetran API KEY](
             https://fivetran.com/docs/rest-api/faq/access-rest-api)
         api_secret (SecretStr): Fivetran API SECRET
+
     Examples:
         Load stored Fivetran credentials:
         ```python
         from prefect_fivetran import FivetranCredentials
         fivetran_credentials = FivetranCredentials.load("BLOCK_NAME")
         ```
+
         Use FivetranCredentials instance to trigger a Fivetran sync:
         ```python
         from prefect_fivetran import FivetranCredentials
@@ -25,6 +28,7 @@ class FivetranCredentials(Block):
         async with fivetran_credentials.get_fivetran() as fivetran:
             fivetran.sync(connector_id="my_connector_id")
         ```
+
         Load saved Fivetran credentials within a flow:
         ```python
         from prefect import flow
