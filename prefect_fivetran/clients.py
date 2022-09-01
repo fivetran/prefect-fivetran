@@ -1,15 +1,11 @@
 """Module containing clients for interacting with the dbt Cloud API"""
 import json
-import time
+from typing import Dict
 
-import requests
 import pendulum
+import requests
 
-from pendulum.datetime import DateTime
-from typing import Any, Dict, Optional
-
-import prefect
-from httpx import AsyncClient, Response
+from prefect_fivetran import __version__
 
 
 class FivetranClient:
@@ -30,7 +26,7 @@ class FivetranClient:
         if not api_secret:
             raise ValueError("Value for parameter `api_secret` must be provided.")
 
-        self.api_user_agent = "prefect-collection/1.0.0"
+        self.api_user_agent = f"prefect-fivetran/{__version__}"
         headers = {"User-Agent": self.api_user_agent}
 
         self.session = requests.Session()
@@ -38,7 +34,7 @@ class FivetranClient:
             "response": lambda r, *args, **kwargs: r.raise_for_status()
         }
         self.session.auth = (api_key, api_secret)
-        self.session.headers = headers
+        self.session.headers.update(headers)
 
     def parse_timestamp(self, api_time: str):
         """
@@ -66,12 +62,10 @@ class FivetranClient:
         URL_CONNECTOR: str = "https://api.fivetran.com/v1/connectors/{}".format(
             connector_id
         )
-        # Make sure connector configuration has been completed successfully and is not broken.
+        # Make sure connector configuration has been completed successfully
+        # and is not broken.
         resp = self.session.get(URL_CONNECTOR)
         connector_details = resp.json()["data"]
-        URL_LOGS = "https://fivetran.com/dashboard/connectors/{}/{}/logs".format(
-            connector_details["service"], connector_details["schema"]
-        )
         URL_SETUP = "https://fivetran.com/dashboard/connectors/{}/{}/setup".format(
             connector_details["service"], connector_details["schema"]
         )
@@ -91,8 +85,11 @@ class FivetranClient:
         schedule_type: str = "manual",
     ) -> requests.models.Response:
         """
-        Take connector off Fivetran's schedule so that it can be controlled in Prefect.
-        Can also be used to place connector back on Fivetran's schedule (schedule_type = "auto").
+        Take connector off Fivetran's schedule so that it can be controlled
+        by Prefect.
+
+        Can also be used to place connector back on Fivetran's schedule
+        with schedule_type = "auto".
 
         Args:
             connector_id: ID of the Fivetran connector with which to interact.
@@ -114,8 +111,7 @@ class FivetranClient:
         if connector_details["schedule_type"] != schedule_type:
             resp = self.session.patch(
                 URL_CONNECTOR,
-                data=json.dumps({"schedule_type": schedule_type}),
-                headers={"Content-Type": "application/json;version=2"},
+                json={"schedule_type": schedule_type},
             )
         return resp
 
@@ -130,7 +126,8 @@ class FivetranClient:
             connector_id: ID of the Fivetran connector with which to interact.
 
         Returns:
-            The timestamp of the end of the connector's last run, or now if it has not yet run.
+            The timestamp of the end of the connector's last run, or now if it
+            has not yet run.
         """
         URL_CONNECTOR: str = "https://api.fivetran.com/v1/connectors/{}".format(
             connector_id
@@ -141,14 +138,14 @@ class FivetranClient:
         succeeded_at = connector_details["succeeded_at"]
         failed_at = connector_details["failed_at"]
 
-        if connector_details["paused"] == True:
+        if connector_details["paused"]:
             self.session.patch(
                 URL_CONNECTOR,
                 data=json.dumps({"paused": False}),
                 headers={"Content-Type": "application/json;version=2"},
             )
 
-        if succeeded_at == None and failed_at == None:
+        if succeeded_at is None and failed_at is None:
             succeeded_at = str(pendulum.now())
 
         last_sync = (
@@ -162,7 +159,7 @@ class FivetranClient:
 
         return last_sync
 
-    async def get_connector(
+    def get_connector(
         self,
         connector_id: str,
     ) -> Dict:
@@ -178,7 +175,7 @@ class FivetranClient:
             connector_id
         )
 
-        return await self.session.get(URL_CONNECTOR).json()["data"]
+        return self.session.get(URL_CONNECTOR).json()["data"]
 
     def sync(
         self,
@@ -196,7 +193,8 @@ class FivetranClient:
             poll_status_every_n_seconds: Frequency in which Prefect will check status of
                 Fivetran connector's sync completion
         Returns:
-            The timestamp of the end of the connector's last run as a string, or now if it has not yet run.
+            The timestamp of the end of the connector's last run as a string, or now if
+            it has not yet run.
         """
         if self.check_connector(connector_id):
             self.set_schedule_type(connector_id, schedule_type)
