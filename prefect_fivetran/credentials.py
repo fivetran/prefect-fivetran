@@ -2,7 +2,7 @@
 from prefect.blocks.core import Block
 from pydantic import SecretStr
 
-from prefect_fivetran.client import FivetranClient
+from prefect_fivetran.clients import FivetranClient
 
 
 class FivetranCredentials(Block):
@@ -40,7 +40,7 @@ class FivetranCredentials(Block):
             FivetranClient.sync(fivetran_credentials=credentials, connector_id="my_connector_id")
         fivetran_sync_flow()
         ```
-    """
+    """  # noqa
 
     _block_type_name = "Fivetran Credentials"
 

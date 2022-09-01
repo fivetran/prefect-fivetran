@@ -1,11 +1,13 @@
 """Module for running Fivetran data syncs."""
 
 import asyncio
+from typing import Dict
 
 from pendulum.datetime import DateTime
 from prefect import flow, get_run_logger, task
 
 from prefect_fivetran.clients import FivetranClient
+from prefect_fivetran.credentials import FivetranCredentials
 
 
 @task(
@@ -51,7 +53,7 @@ async def start_fivetran_sync(
     """
     logger = get_run_logger()
     logger.info(f"Triggering Fivetran data sync for connector {connector_id}")
-    connector_details = await fivetran_client.get_connector(connector_id)
+    connector_details = fivetran_client.get_connector(connector_id)
     logger.info(
         "Connector type: {}, connector schema: {}".format(
             connector_details["service"], connector_details["schema"]
@@ -105,6 +107,7 @@ async def finish_fivetran_sync(
 
     Returns:
         Dict containing the timestamp of the end of the connector's run and its ID.
+
     Examples:
         Run and finish a Fivetran connector in Prefect
         ```python
@@ -112,6 +115,8 @@ async def finish_fivetran_sync(
         from prefect_fivetran.credentials import FivetranCredentials
         from prefect_fivetran.client import FivetranClient
         from prefect_fivetran.fivetran import start_fivetran_sync, finish_fivetran_sync
+
+
         @flow
         def fivetran_sync_flow():
             fivetran_client = FivetranClient(
@@ -136,12 +141,12 @@ async def finish_fivetran_sync(
     logger = get_run_logger()
     loop: bool = True
     while loop:
-        current_details = await fivetran_client.get_connector(connector_id=connector_id)
+        current_details = fivetran_client.get_connector(connector_id=connector_id)
         succeeded_at = fivetran_client.parse_timestamp(current_details["succeeded_at"])
         failed_at = fivetran_client.parse_timestamp(current_details["failed_at"])
         current_completed_at = succeeded_at if succeeded_at > failed_at else failed_at
-        # The only way to tell if a sync failed is to check if its latest failed_at value
-        # is greater than then last known "sync completed at" value.
+        # The only way to tell if a sync failed is to check if its latest failed_at
+        # value is greater than then last known "sync completed at" value.
         if failed_at > fivetran_client.parse_timestamp(previous_completed_at):
             raise ValueError(
                 'Fivetran sync for connector "{}" failed; please see logs at {}'.format(
@@ -158,6 +163,9 @@ async def finish_fivetran_sync(
         sync_state = current_details["status"]["sync_state"]
         logger.info(
             'Connector "{}" current sync_state = {}'.format(connector_id, sync_state)
+        )
+        print(
+            current_completed_at, fivetran_client.parse_timestamp(previous_completed_at)
         )
         if current_completed_at > fivetran_client.parse_timestamp(
             previous_completed_at
@@ -236,9 +244,7 @@ async def fivetran_sync_flow(
         my_flow()
         ```
     """
-    fivetran_client = FivetranClient(
-        fivetran_credentials=fivetranCredentials,
-    )
+    fivetran_client = fivetran_credentials.get_fivetran()
     last_sync = await start_fivetran_sync(
         connector_id=connector_id,
         fivetran_client=fivetran_client,
