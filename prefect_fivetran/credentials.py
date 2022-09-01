@@ -43,6 +43,7 @@ class FivetranCredentials(Block):
     """  # noqa
 
     _block_type_name = "Fivetran Credentials"
+    _logo_url = "https://images.ctfassets.net/gm98wzqotmnx/4lfv3KREIOQk1kUM74a66W/433c00edcbde38404a9c2252a721d8d1/fivetran_logo_icon_170149.png?h=250"  # noqa
 
     api_key: SecretStr
     api_secret: SecretStr
