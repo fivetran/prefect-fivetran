@@ -164,9 +164,6 @@ async def finish_fivetran_sync(
         logger.info(
             'Connector "{}" current sync_state = {}'.format(connector_id, sync_state)
         )
-        print(
-            current_completed_at, fivetran_client.parse_timestamp(previous_completed_at)
-        )
         if current_completed_at > fivetran_client.parse_timestamp(
             previous_completed_at
         ):
