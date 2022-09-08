@@ -1,11 +1,12 @@
-"""Module containing clients for interacting with the dbt Cloud API"""
 import json
 from typing import Dict
 
 import pendulum
 import requests
 
-from prefect_fivetran import __version__
+from httpx import AsyncClient, Response
+
+# from prefect_fivetran import __version__
 
 
 class FivetranClient:
@@ -26,15 +27,17 @@ class FivetranClient:
         if not api_secret:
             raise ValueError("Value for parameter `api_secret` must be provided.")
 
-        self.api_user_agent = f"prefect-fivetran/{__version__}"
-        headers = {"User-Agent": self.api_user_agent}
+        self._closed = False
+        self._started = False
 
-        self.session = requests.Session()
-        self.session.hooks = {
+        self.client = AsyncClient(
+            headers={"user-agent": f"prefect-fivetran"},  # {prefect.__version__}",
+        )
+
+        self.client.hooks = {
             "response": lambda r, *args, **kwargs: r.raise_for_status()
         }
-        self.session.auth = (api_key, api_secret)
-        self.session.headers.update(headers)
+        self.client.auth = (api_key, api_secret)
 
     def parse_timestamp(self, api_time: str):
         """
@@ -47,125 +50,12 @@ class FivetranClient:
             else pendulum.from_timestamp(-1)
         )
 
-    def check_connector(self, connector_id: str) -> requests.models.Response:
-        """
-        Ensure connector exists and is reachable.
-
-        Args:
-            connector_id: ID of the Fivetran connector with which to interact.
-
-        Returns:
-            The response from the Fivetran API.
-        """
-        if not connector_id:
-            raise ValueError("Value for parameter `connector_id` must be provided.")
-        URL_CONNECTOR: str = "https://api.fivetran.com/v1/connectors/{}".format(
-            connector_id
-        )
-        # Make sure connector configuration has been completed successfully
-        # and is not broken.
-        resp = self.session.get(URL_CONNECTOR)
-        connector_details = resp.json()["data"]
-        URL_SETUP = "https://fivetran.com/dashboard/connectors/{}/{}/setup".format(
-            connector_details["service"], connector_details["schema"]
-        )
-        setup_state = connector_details["status"]["setup_state"]
-        if setup_state != "connected":
-            EXC_SETUP: str = (
-                'Fivetran connector "{}" not correctly configured, status: {}; '
-                + "please complete setup at {}"
-            )
-            raise ValueError(EXC_SETUP.format(connector_id, setup_state, URL_SETUP))
-
-        return resp
-
-    def set_schedule_type(
-        self,
-        connector_id: str,
-        schedule_type: str = "manual",
-    ) -> requests.models.Response:
-        """
-        Take connector off Fivetran's schedule so that it can be controlled
-        by Prefect.
-
-        Can also be used to place connector back on Fivetran's schedule
-        with schedule_type = "auto".
-
-        Args:
-            connector_id: ID of the Fivetran connector with which to interact.
-            schedule_type: Connector syncs periodically on Fivetran's schedule (auto),
-                or whenever called by the API (manual).
-
-        Returns:
-            The response from the Fivetran API.
-        """
-        if schedule_type not in ["manual", "auto"]:
-            raise ValueError('schedule_type must be either "manual" or "auto"')
-
-        URL_CONNECTOR: str = "https://api.fivetran.com/v1/connectors/{}".format(
-            connector_id
-        )
-        resp = self.session.get(URL_CONNECTOR)
-        connector_details = resp.json()["data"]
-
-        if connector_details["schedule_type"] != schedule_type:
-            resp = self.session.patch(
-                URL_CONNECTOR,
-                json={"schedule_type": schedule_type},
-            )
-        return resp
-
-    def force_sync(
-        self,
-        connector_id: str,
-    ) -> str:
-        """
-        Start a Fivetran data sync
-
-        Args:
-            connector_id: ID of the Fivetran connector with which to interact.
-
-        Returns:
-            The timestamp of the end of the connector's last run, or now if it
-            has not yet run.
-        """
-        URL_CONNECTOR: str = "https://api.fivetran.com/v1/connectors/{}".format(
-            connector_id
-        )
-
-        resp = self.session.get(URL_CONNECTOR)
-        connector_details = resp.json()["data"]
-        succeeded_at = connector_details["succeeded_at"]
-        failed_at = connector_details["failed_at"]
-
-        if connector_details["paused"]:
-            self.session.patch(
-                URL_CONNECTOR,
-                data=json.dumps({"paused": False}),
-                headers={"Content-Type": "application/json;version=2"},
-            )
-
-        if succeeded_at is None and failed_at is None:
-            succeeded_at = str(pendulum.now())
-
-        last_sync = (
-            succeeded_at
-            if self.parse_timestamp(succeeded_at) > self.parse_timestamp(failed_at)
-            else failed_at
-        )
-        self.session.post(
-            "https://api.fivetran.com/v1/connectors/" + connector_id + "/force"
-        )
-
-        return last_sync
-
-    def get_connector(
+    async def get_connector(
         self,
         connector_id: str,
     ) -> Dict:
         """
         Retrieve Fivetran connector to details.
-
         Args:
             connector_id: ID of the Fivetran connector with which to interact.
         Returns:
@@ -175,27 +65,65 @@ class FivetranClient:
             connector_id
         )
 
-        return self.session.get(URL_CONNECTOR).json()["data"]
+        return (await self.client.get(URL_CONNECTOR)).json()
 
-    def sync(
+    async def patch_connector(
         self,
         connector_id: str,
-        schedule_type: str = "manual",
-        poll_status_every_n_seconds: int = 15,
-    ) -> str:
+        data: Dict = {},
+        headers: str = "",
+    ) -> Dict:
         """
-        Run a Fivetran connector data sync and wait for its completion.
-
+        Alter Fivetran connector metadata.
         Args:
             connector_id: ID of the Fivetran connector with which to interact.
-            schedule_type: Connector syncs periodically on Fivetran's schedule (auto),
-                or whenever called by the API (manual).
-            poll_status_every_n_seconds: Frequency in which Prefect will check status of
-                Fivetran connector's sync completion
+            data: Key Value pair of connector metadata to be changed.
         Returns:
-            The timestamp of the end of the connector's last run as a string, or now if
-            it has not yet run.
+            Dict containing the details of a Fivetran connector
         """
-        if self.check_connector(connector_id):
-            self.set_schedule_type(connector_id, schedule_type)
-            return self.force_sync(connector_id)
+        URL_CONNECTOR: str = "https://api.fivetran.com/v1/connectors/{}".format(
+            connector_id
+        )
+
+        return (
+            await self.client.patch(
+                URL_CONNECTOR,
+                data=json.dumps(data),
+                headers={"Content-Type": "application/json;version=2"},
+            )
+        ).json()
+
+    async def force_connector(
+        self,
+        connector_id: str,
+    ) -> str:
+        """
+        Start a Fivetran data sync
+        Args:
+            connector_id: ID of the Fivetran connector with which to interact.
+        Returns:
+            The timestamp of the end of the connector's last run, or now if it
+            has not yet run.
+        """
+
+        return (
+            await self.client.post(
+                "https://api.fivetran.com/v1/connectors/" + connector_id + "/force"
+            )
+        ).json()
+
+    async def __aenter__(self):
+        if self._closed:
+            raise RuntimeError(
+                "The client cannot be started again after it has been closed."
+            )
+        if self._started:
+            raise RuntimeError("The client cannot be started more than once.")
+
+        self._started = True
+
+        return self
+
+    async def __aexit__(self, *exc):
+        self._closed = True
+        await self.client.__aexit__()
