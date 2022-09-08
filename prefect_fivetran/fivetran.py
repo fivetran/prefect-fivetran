@@ -483,5 +483,5 @@ async def fivetran_sync_flow(
         connector_id=connector_id,
         fivetran_credentials=fivetran_credentials,
         previous_completed_at=last_sync,
-        poll_status_every_n_seconds=10,
+        poll_status_every_n_seconds=poll_status_every_n_seconds,
     )
