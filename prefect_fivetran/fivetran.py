@@ -4,6 +4,7 @@ from typing import Dict
 from pendulum.datetime import DateTime
 from prefect import flow, get_run_logger, task
 
+from prefect_fivetran.credentials import FivetranCredentials
 
 @task(
     name="Wait on a Fivetran connector data sync",
@@ -219,7 +220,7 @@ async def force_fivetran_connector(
 async def finish_fivetran_sync(
     connector_id: str,
     fivetran_credentials: FivetranCredentials,
-    previous_completed_at: DateTime,
+    previous_completed_at: str,
     poll_status_every_n_seconds: int = 15,
 ) -> Dict:
     """
