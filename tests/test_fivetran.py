@@ -132,8 +132,6 @@ class TestFinishFivetranSync:
         result = await test_flow()
 
 class TestStartFivetranSync:
-    @responses.activate(registry=OrderedRegistry)
-    @pytest.mark.respx(assert_all_called=True)
     async def test_start_fivetran_sync(self, respx_mock, fivetran_credentials):
         respx_mock.get(
             url="https://api.fivetran.com/v1/connectors/12345",
@@ -180,8 +178,6 @@ class TestStartFivetranSync:
         )
 
 class TestFivetranSyncFlow:
-    @responses.activate(registry=OrderedRegistry)
-    @pytest.mark.respx(assert_all_called=True)
     async def test_fivetran_sync_flow(self, respx_mock, fivetran_credentials):
         final_get_connection_response = {
             **GET_CONNECTION_MOCK_RESPONSE,
