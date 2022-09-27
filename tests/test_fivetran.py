@@ -130,7 +130,7 @@ class TestFinishFivetranSync:
             )
 
         result = await test_flow()
-"""
+
 class TestStartFivetranSync:
     @responses.activate(registry=OrderedRegistry)
     @pytest.mark.respx(assert_all_called=True)
