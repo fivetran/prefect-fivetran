@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## 0.1.1
+Released September 28th, 2022
+
+### Fixed 
+- `async tests` - [#5](https://github.com/fivetran/prefect-fivetran/pull/5)
+
 ## 0.1.0
 Released September 7th, 2022
 
