@@ -4,15 +4,15 @@ from httpx import Response
 from prefect import flow
 
 from prefect_fivetran import __version__
-from prefect_fivetran.credentials import FivetranCredentials
-from prefect_fivetran.fivetran import (
-    check_fivetran_connector,
-    finish_fivetran_sync,
-    fivetran_sync_flow,
-    force_fivetran_connector,
+from prefect_fivetran.connectors import (
     set_fivetran_connector_schedule,
-    start_fivetran_sync,
+    start_fivetran_connector_sync,
+    trigger_fivetran_connector_sync_and_wait_for_completion,
+    verify_and_start_fivetran_connector_sync,
+    verify_fivetran_connector_status,
+    wait_for_fivetran_connector_sync,
 )
+from prefect_fivetran.credentials import FivetranCredentials
 from tests.mocked_responses import (
     GET_CONNECTION_MOCK_RESPONSE,
     UPDATE_CONNECTION_MOCK_RESPONSE,
@@ -37,7 +37,7 @@ class TestCheckFivetranConnector:
 
         @flow
         async def test_flow():
-            return await check_fivetran_connector(
+            return await verify_fivetran_connector_status(
                 connector_id="12345",
                 fivetran_credentials=fivetran_credentials,
             )
@@ -85,7 +85,7 @@ class TestForceFivetranConnector:
 
         @flow
         async def test_flow():
-            return await force_fivetran_connector(
+            return await start_fivetran_connector_sync(
                 connector_id="12345",
                 fivetran_credentials=fivetran_credentials,
             )
@@ -95,7 +95,9 @@ class TestForceFivetranConnector:
 
 
 class TestFinishFivetranSync:
-    async def test_finish_fivetran_sync(self, respx_mock, fivetran_credentials):
+    async def test_wait_for_fivetran_connector_sync(
+        self, respx_mock, fivetran_credentials
+    ):
         final_get_connection_response = {
             **GET_CONNECTION_MOCK_RESPONSE,
             "data": {
@@ -109,7 +111,7 @@ class TestFinishFivetranSync:
 
         @flow
         async def test_flow():
-            return await finish_fivetran_sync(
+            return await wait_for_fivetran_connector_sync(
                 connector_id="12345",
                 fivetran_credentials=fivetran_credentials,
                 previous_completed_at=str(pendulum.now().subtract(days=1)),
@@ -120,7 +122,9 @@ class TestFinishFivetranSync:
 
 
 class TestStartFivetranSync:
-    async def test_start_fivetran_sync(self, respx_mock, fivetran_credentials):
+    async def test_verify_and_start_fivetran_connector_sync(
+        self, respx_mock, fivetran_credentials
+    ):
         respx_mock.get(
             url="https://api.fivetran.com/v1/connectors/12345",
         ).mock(return_value=Response(200, json=GET_CONNECTION_MOCK_RESPONSE))
@@ -144,14 +148,16 @@ class TestStartFivetranSync:
         )
 
         # TODO: Assert on the response to make sure it matches the expected value
-        await start_fivetran_sync(
+        await verify_and_start_fivetran_connector_sync(
             connector_id="12345",
             fivetran_credentials=fivetran_credentials,
         )
 
 
 class TestFivetranSyncFlow:
-    async def test_fivetran_sync_flow(self, respx_mock, fivetran_credentials):
+    async def test_trigger_fivetran_connector_sync_and_wait_for_completion(
+        self, respx_mock, fivetran_credentials
+    ):
         final_get_connection_response = {
             **GET_CONNECTION_MOCK_RESPONSE,
             "data": {
@@ -179,7 +185,7 @@ class TestFivetranSyncFlow:
                 },
             )
         )
-        await fivetran_sync_flow(
+        await trigger_fivetran_connector_sync_and_wait_for_completion(
             connector_id="12345",
             fivetran_credentials=fivetran_credentials,
         )

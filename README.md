@@ -25,23 +25,27 @@ pip install prefect-fivetran
 ### Write and run a flow
 
 ```python
-import asyncio
-from prefect_fivetran.credentials import FivetranCredentials
-from prefect_fivetran.fivetran import fivetran_sync_flow
+from prefect import flow
+from prefect_fivetran import FivetranCredentials
+from prefect_fivetran.connectors import fivetran_sync_flow
 
-fivetran_credentials = FivetranCredentials(
-    api_key="my_api_key",
-    api_secret="my_api_secret",
-)
-        
-asyncio.run(
-    fivetran_sync_flow(
+@flow
+def my_flow():
+    ...
+    fivetran_credentials = FivetranCredentials(
+        api_key="my_api_key",
+        api_secret="my_api_secret",
+    )
+    fivetran_result = await fivetran_sync_flow(
         fivetran_credentials=fivetran_credentials,
         connector_id="my_connector_id",
         schedule_type="my_schedule_type",
         poll_status_every_n_seconds=30,
     )
-)
+    ...
+
+my_flow()
+
 ```
 
 ## Resources
