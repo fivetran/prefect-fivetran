@@ -48,7 +48,7 @@ plugins:
 
 nav:
     - Home: index.md
-    - Fivetran: fivetran.md
-    - Credentials: credentials.md
+    - Connectors: connectors.md
     - Clients: clients.md
+    - Credentials: credentials.md
 
