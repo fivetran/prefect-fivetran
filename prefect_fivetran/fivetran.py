@@ -1,8 +1,12 @@
+"""Tasks and flows for managing Fivetran connectors"""
+
 import asyncio
 from typing import Dict
 
-from pendulum.datetime import DateTime
+import pendulum
 from prefect import flow, get_run_logger, task
+
+from prefect_fivetran.credentials import FivetranCredentials
 
 
 @task(
@@ -192,8 +196,7 @@ async def force_fivetran_connector(
         if connector_details["paused"]:
             await fivetran_client.patch_connector(
                 connector_id=connector_id,
-                data=json.dumps({"paused": False}),
-                headers={"Content-Type": "application/json;version=2"},
+                data={"paused": False},
             )
 
         if succeeded_at is None and failed_at is None:
@@ -219,7 +222,7 @@ async def force_fivetran_connector(
 async def finish_fivetran_sync(
     connector_id: str,
     fivetran_credentials: FivetranCredentials,
-    previous_completed_at: DateTime,
+    previous_completed_at: str,
     poll_status_every_n_seconds: int = 15,
 ) -> Dict:
     """
@@ -291,12 +294,8 @@ async def finish_fivetran_sync(
             # value is greater than then last known "sync completed at" value.
             if failed_at > fivetran_client.parse_timestamp(previous_completed_at):
                 raise ValueError(
-                    'Fivetran sync for connector "{}" failed; please see logs at {}'.format(
-                        connector_id,
-                        "https://fivetran.com/dashboard/connectors/{}/{}/logs".format(
-                            current_details["service"], current_details["schema"]
-                        ),
-                    )
+                    f'Fivetran sync for connector "{connector_id}" failed. '
+                    f'Please see logs at https://fivetran.com/dashboard/connectors/{current_details["service"]}/{current_details["schema"]}/logs'  # noqa
                 )
             # Started sync will spend some time in the 'scheduled' state before
             # transitioning to 'syncing'.
@@ -388,12 +387,12 @@ async def start_fivetran_sync(
         connector_id=connector_id,
         fivetran_credentials=fivetran_credentials,
     ):
-        set_fivetran_connector_schedule(
+        await set_fivetran_connector_schedule(
             connector_id=connector_id,
             fivetran_credentials=fivetran_credentials,
             schedule_type=schedule_type,
         )
-        return force_fivetran_connector(
+        return await force_fivetran_connector(
             connector_id=connector_id,
             fivetran_credentials=fivetran_credentials,
         )

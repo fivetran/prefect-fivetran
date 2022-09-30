@@ -1,12 +1,10 @@
-import json
+"""Clients for interacting with the Fivetran API"""
+
 from typing import Dict
 
 import pendulum
-import requests
-
-from httpx import AsyncClient, Response
-
-# from prefect_fivetran import __version__
+import prefect
+from httpx import AsyncClient
 
 
 class FivetranClient:
@@ -31,7 +29,7 @@ class FivetranClient:
         self._started = False
 
         self.client = AsyncClient(
-            headers={"user-agent": f"prefect-fivetran"},  # {prefect.__version__}",
+            headers={"user-agent": f"prefect-{prefect.__version__}"},
         )
 
         self.client.hooks = {
@@ -70,8 +68,7 @@ class FivetranClient:
     async def patch_connector(
         self,
         connector_id: str,
-        data: Dict = {},
-        headers: str = "",
+        data: Dict,
     ) -> Dict:
         """
         Alter Fivetran connector metadata.
@@ -88,7 +85,7 @@ class FivetranClient:
         return (
             await self.client.patch(
                 URL_CONNECTOR,
-                data=json.dumps(data),
+                json=data,
                 headers={"Content-Type": "application/json;version=2"},
             )
         ).json()

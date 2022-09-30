@@ -10,9 +10,9 @@ class FivetranCredentials(Block):
     Credentials block for credential use across Fivetran tasks and flows.
 
     Args:
-        api_key (SecretStr): [Fivetran API KEY](
+        api_key: [Fivetran API KEY](
             https://fivetran.com/docs/rest-api/faq/access-rest-api)
-        api_secret (SecretStr): Fivetran API SECRET
+        api_secret: Fivetran API SECRET
 
     Examples:
         Load stored Fivetran credentials:
