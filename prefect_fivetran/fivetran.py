@@ -10,11 +10,11 @@ from prefect_fivetran.credentials import FivetranCredentials
 
 
 @task(
-    name="Wait on a Fivetran connector data sync",
-    description="Halts execution of flow until Fivetran connector data sync completes",
+    name="Verify Fivetran connector status",
+    description="Checks that a Fivetran connector is ready to sync data.",
     retries=0,
 )
-async def check_fivetran_connector(
+async def verify_fivetran_connector_status(
     connector_id: str,
     fivetran_credentials: FivetranCredentials,
 ) -> Dict:
@@ -34,18 +34,19 @@ async def check_fivetran_connector(
         from prefect import flow
         from prefect_fivetran.credentials import FivetranCredentials
         from prefect_fivetran.fivetran import check_fivetran_connector
+
         @flow
-        def fivetran_sync_flow():
+        def example_flow():
             fivetran_credentials = FivetranCredentials(
                     api_key="my_api_key",
                     api_secret="my_api_secret",
             )
-            return await check_fivetran_connector(
+            return verify_fivetran_connector_status(
                 connector_id="my_connector_id",
                 fivetran_credentials=fivetran_credentials,
             )
 
-        asyncio.run(fivetran_sync_flow())
+        example_flow()
         ```
     """
     if not connector_id:
@@ -71,8 +72,8 @@ async def check_fivetran_connector(
 
 
 @task(
-    name="Wait on a Fivetran connector data sync",
-    description="Halts execution of flow until Fivetran connector data sync completes",
+    name="Set Fivetran connector schedule",
+    description="Sets the schedule for a Fivetran connector.",
     retries=0,
 )
 async def set_fivetran_connector_schedule(
@@ -102,19 +103,20 @@ async def set_fivetran_connector_schedule(
         from prefect import flow
         from prefect_fivetran.credentials import FivetranCredentials
         from prefect_fivetran.fivetran import set_fivetran_connector_schedule
+
         @flow
-        def fivetran_sync_flow():
+        def example_flow():
             fivetran_credentials = FivetranCredentials(
                     api_key="my_api_key",
                     api_secret="my_api_secret",
             )
-            return await set_fivetran_connector_schedule(
+            return set_fivetran_connector_schedule(
                 connector_id="my_connector_id",
                 fivetran_credentials=fivetran_credentials,
                 schedule_type="my_schedule_type",
             )
 
-        asyncio.run(fivetran_sync_flow())
+        fivetran_sync_flow()
         ```
     """
     if schedule_type not in ["manual", "auto"]:
@@ -134,17 +136,17 @@ async def set_fivetran_connector_schedule(
 
 
 @task(
-    name="Wait on a Fivetran connector data sync",
-    description="Halts execution of flow until Fivetran connector data sync completes",
+    name="Start Fivetran connector sync",
+    description="Starts a Fivetran connector data sync.",
     retries=3,
     retry_delay_seconds=10,
 )
-async def force_fivetran_connector(
+async def start_fivetran_connector_sync(
     connector_id: str,
     fivetran_credentials: FivetranCredentials,
 ) -> Dict:
     """
-    Start a Fivetran data sync
+    Start a Fivetran data sync.
 
     Args:
         connector_id: The id of the Fivetran connector to use in Prefect.
@@ -159,31 +161,20 @@ async def force_fivetran_connector(
         ```python
         from prefect import flow
         from prefect_fivetran.credentials import FivetranCredentials
-        from prefect_fivetran.fivetran import force_fivetran_connector
+        from prefect_fivetran.fivetran import start_fivetran_connector_sync
+
         @flow
-        def fivetran_sync_flow():
+        def example_flow():
             fivetran_credentials = FivetranCredentials(
                     api_key="my_api_key",
                     api_secret="my_api_secret",
             )
-
-            if await check_fivetran_connector(
-                connector_id=connector_id,
+            start_fivetran_connector_sync(
+                connector_id="my_connector_id",
                 fivetran_credentials=fivetran_credentials,
-            ):
-                await set_fivetran_connector_schedule(
-                    connector_id="my_connector_id",
-                    fivetran_credentials=fivetran_credentials,
-                    schedule_type="my_schedule_type",
-                )
-                last_sync = await force_fivetran_connector(
-                   connector_id="my_connector_id",
-                   fivetran_credentials=fivetran_credentials,
-                )
+            )
 
-            return last_sync
-
-        asyncio.run(fivetran_sync_flow())
+            example_flow()
         ```
     """
     async with fivetran_credentials.get_fivetran() as fivetran_client:
@@ -219,7 +210,7 @@ async def force_fivetran_connector(
     retries=3,
     retry_delay_seconds=10,
 )
-async def finish_fivetran_sync(
+async def wait_for_fivetran_connector_sync(
     connector_id: str,
     fivetran_credentials: FivetranCredentials,
     previous_completed_at: str,
@@ -242,38 +233,22 @@ async def finish_fivetran_sync(
         ```python
         from prefect import flow
         from prefect_fivetran.credentials import FivetranCredentials
-        from prefect_fivetran.client import FivetranClient
         from prefect_fivetran.fivetran import start_fivetran_sync, finish_fivetran_sync
+
         @flow
-        def fivetran_sync_flow():
-            fivetran_client = FivetranClient(
-                FivetranCredentials(
-                    api_key="my_api_key",
-                    api_secret="my_api_secret",
-                )
+        def example_flow():
+            fivetran_credentials = FivetranCredentials(
+                api_key="my_api_key",
+                api_secret="my_api_secret",
             )
-            if await check_fivetran_connector(
+            return wait_for_fivetran_connector_sync(
                 connector_id="my_connector_id",
                 fivetran_credentials=fivetran_credentials,
-            ):
-                await set_fivetran_connector_schedule(
-                    connector_id="my_connector_id",
-                    fivetran_credentials=fivetran_credentials,
-                    schedule_type="my_schedule_type",
-                )
-                last_sync = await force_fivetran_connector(
-                   connector_id="my_connector_id",
-                   fivetran_credentials=fivetran_credentials,
-                )
+                previous_completed_at=last_sync,
+                poll_status_every_n_seconds=60,
+            )
 
-                return await finish_fivetran_sync(
-                    connector_id="my_connector_id",
-                    fivetran_client=fivetran_client,
-                    previous_completed_at=last_sync,
-                    poll_status_every_n_seconds=60,
-                )
-
-        asyncio.run(fivetran_sync_flow())
+        example_flow()
         ```
     """
     logger = get_run_logger()
@@ -326,13 +301,16 @@ async def finish_fivetran_sync(
     retries=3,
     retry_delay_seconds=10,
 )
-async def start_fivetran_sync(
+async def verify_and_start_fivetran_connector_sync(
     connector_id: str,
     fivetran_credentials: FivetranCredentials,
     schedule_type: str = "manual",
 ) -> Dict:
     """
     Flow that triggers a connector sync.
+
+    Ensures that Fivetran connector is correctly configured and disables connector
+    schedule so that Prefect schedule can be used instead.
 
     Args:
         fivetran_credentials: Credentials for authenticating with Fivetran.
@@ -350,6 +328,7 @@ async def start_fivetran_sync(
         import asyncio
         from prefect_fivetran.credentials import FivetranCredentials
         from prefect_fivetran.fivetran import start_fivetran_sync
+
         fivetran_credentials = FivetranCredentials(
             api_key="my_api_key",
             api_secret="my_api_secret",
@@ -383,7 +362,7 @@ async def start_fivetran_sync(
         my_flow()
         ```
     """
-    if check_fivetran_connector(
+    if verify_fivetran_connector_status(
         connector_id=connector_id,
         fivetran_credentials=fivetran_credentials,
     ):
@@ -392,7 +371,7 @@ async def start_fivetran_sync(
             fivetran_credentials=fivetran_credentials,
             schedule_type=schedule_type,
         )
-        return await force_fivetran_connector(
+        return await start_fivetran_connector_sync(
             connector_id=connector_id,
             fivetran_credentials=fivetran_credentials,
         )
@@ -403,7 +382,7 @@ async def start_fivetran_sync(
     description="Triggers a Fivetran connector to move data and waits for the"
     "connector to complete.",
 )
-async def fivetran_sync_flow(
+async def trigger_fivetran_connector_sync_and_wait_for_completion(
     connector_id: str,
     fivetran_credentials: FivetranCredentials,
     schedule_type: str = "manual",
@@ -428,8 +407,8 @@ async def fivetran_sync_flow(
         ```python
         import asyncio
         from prefect_fivetran.credentials import FivetranCredentials
-        from prefect_fivetran.clients import FivetranClient
-        from prefect_fivetran.fivetran import fivetran_sync_flow
+        from prefect_fivetran.fivetran import trigger_fivetran_connector_sync_and_wait_for_completion
+
         fivetran_credentials = FivetranCredentials(
             api_key="my_api_key",
             api_secret="my_api_secret",
@@ -448,6 +427,7 @@ async def fivetran_sync_flow(
         from prefect import flow
         from prefect_fivetran.credentials import FivetranCredentials
         from prefect_fivetran.fivetran import fivetran_sync_flow
+
         @flow
         def my_flow():
             ...
@@ -462,10 +442,11 @@ async def fivetran_sync_flow(
                 poll_status_every_n_seconds=30,
             )
             ...
+
         my_flow()
         ```
-    """
-    if await check_fivetran_connector(
+    """  # noqa
+    if await verify_fivetran_connector_status(
         connector_id=connector_id,
         fivetran_credentials=fivetran_credentials,
     ):
@@ -474,11 +455,11 @@ async def fivetran_sync_flow(
             fivetran_credentials=fivetran_credentials,
             schedule_type=schedule_type,
         )
-        last_sync = await force_fivetran_connector(
+        last_sync = await start_fivetran_connector_sync(
             connector_id=connector_id,
             fivetran_credentials=fivetran_credentials,
         )
-    return await finish_fivetran_sync(
+    return await wait_for_fivetran_connector_sync(
         connector_id=connector_id,
         fivetran_credentials=fivetran_credentials,
         previous_completed_at=last_sync,
