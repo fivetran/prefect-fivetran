@@ -6,7 +6,7 @@ from typing import Dict
 import pendulum
 from prefect import flow, get_run_logger, task
 
-from prefect_fivetran.credentials import FivetranCredentials
+from prefect_fivetran import FivetranCredentials
 
 
 @task(
@@ -32,7 +32,7 @@ async def verify_fivetran_connector_status(
         Check a Fivetran connector in Prefect
         ```python
         from prefect import flow
-        from prefect_fivetran.credentials import FivetranCredentials
+        from prefect_fivetran import FivetranCredentials
         from prefect_fivetran.fivetran import check_fivetran_connector
 
         @flow
@@ -101,7 +101,7 @@ async def set_fivetran_connector_schedule(
         Check a Fivetran connector in Prefect
         ```python
         from prefect import flow
-        from prefect_fivetran.credentials import FivetranCredentials
+        from prefect_fivetran import FivetranCredentials
         from prefect_fivetran.fivetran import set_fivetran_connector_schedule
 
         @flow
@@ -160,7 +160,7 @@ async def start_fivetran_connector_sync(
         Check a Fivetran connector in Prefect
         ```python
         from prefect import flow
-        from prefect_fivetran.credentials import FivetranCredentials
+        from prefect_fivetran import FivetranCredentials
         from prefect_fivetran.fivetran import start_fivetran_connector_sync
 
         @flow
@@ -232,7 +232,7 @@ async def wait_for_fivetran_connector_sync(
         Run and finish a Fivetran connector in Prefect
         ```python
         from prefect import flow
-        from prefect_fivetran.credentials import FivetranCredentials
+        from prefect_fivetran import FivetranCredentials
         from prefect_fivetran.fivetran import start_fivetran_sync, finish_fivetran_sync
 
         @flow
@@ -326,7 +326,7 @@ async def verify_and_start_fivetran_connector_sync(
         Trigger a Fivetran data sync:
         ```python
         import asyncio
-        from prefect_fivetran.credentials import FivetranCredentials
+        from prefect_fivetran import FivetranCredentials
         from prefect_fivetran.fivetran import start_fivetran_sync
 
         fivetran_credentials = FivetranCredentials(
@@ -344,7 +344,7 @@ async def verify_and_start_fivetran_connector_sync(
         Trigger a Fivetran connector sync as a sub-flow:
         ```python
         from prefect import flow
-        from prefect_fivetran.credentials import FivetranCredentials
+        from prefect_fivetran import FivetranCredentials
         from prefect_fivetran.fivetran import start_fivetran_sync
         @flow
         def my_flow():
@@ -406,7 +406,7 @@ async def trigger_fivetran_connector_sync_and_wait_for_completion(
         Trigger a Fivetran data sync and wait for completion as a stand alone flow:
         ```python
         import asyncio
-        from prefect_fivetran.credentials import FivetranCredentials
+        from prefect_fivetran import FivetranCredentials
         from prefect_fivetran.fivetran import trigger_fivetran_connector_sync_and_wait_for_completion
 
         fivetran_credentials = FivetranCredentials(
@@ -425,8 +425,8 @@ async def trigger_fivetran_connector_sync_and_wait_for_completion(
         Trigger a Fivetran connector sync and wait for completion as a sub-flow:
         ```python
         from prefect import flow
-        from prefect_fivetran.credentials import FivetranCredentials
-        from prefect_fivetran.fivetran import fivetran_sync_flow
+        from prefect_fivetran import FivetranCredentials
+        from prefect_fivetran.connectors import fivetran_sync_flow
 
         @flow
         def my_flow():

@@ -29,7 +29,7 @@ setup(
     extras_require={"dev": dev_requires},
     entry_points={
         "prefect.collections": [
-            "FivetranCredentials = prefect_fivetran.credentials",
+            "prefect-fivetran = prefect_fivetran",
         ]
     },
     classifiers=[

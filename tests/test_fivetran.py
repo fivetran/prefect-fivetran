@@ -4,8 +4,7 @@ from httpx import Response
 from prefect import flow
 
 from prefect_fivetran import __version__
-from prefect_fivetran.credentials import FivetranCredentials
-from prefect_fivetran.fivetran import (
+from prefect_fivetran.connectors import (
     set_fivetran_connector_schedule,
     start_fivetran_connector_sync,
     trigger_fivetran_connector_sync_and_wait_for_completion,
@@ -13,6 +12,7 @@ from prefect_fivetran.fivetran import (
     verify_fivetran_connector_status,
     wait_for_fivetran_connector_sync,
 )
+from prefect_fivetran.credentials import FivetranCredentials
 from tests.mocked_responses import (
     GET_CONNECTION_MOCK_RESPONSE,
     UPDATE_CONNECTION_MOCK_RESPONSE,
