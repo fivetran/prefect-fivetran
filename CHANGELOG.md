@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 ## 0.1.0
+Released September 29th, 2022
+
+### Added 
+- `check_fivetran_connector`, `set_fivetran_connector_schedule`, `force_fivetran_connector` and `finish_fivetran_sync` tasks
+- `start_fivetran_sync` and `fivetran_sync_flow` flows
+
+## 0.1.0
 Released September 7th, 2022
 
 ### Added
