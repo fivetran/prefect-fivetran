@@ -33,7 +33,7 @@ async def verify_fivetran_connector_status(
         ```python
         from prefect import flow
         from prefect_fivetran import FivetranCredentials
-        from prefect_fivetran.fivetran import check_fivetran_connector
+        from prefect_fivetran.fivetran import verify_fivetran_connector_status
 
         @flow
         def example_flow():
@@ -233,7 +233,10 @@ async def wait_for_fivetran_connector_sync(
         ```python
         from prefect import flow
         from prefect_fivetran import FivetranCredentials
-        from prefect_fivetran.fivetran import start_fivetran_sync, finish_fivetran_sync
+        from prefect_fivetran.fivetran import (
+            start_fivetran_sync,
+            wait_for_fivetran_connector_sync,
+        )
 
         @flow
         def example_flow():
@@ -241,6 +244,12 @@ async def wait_for_fivetran_connector_sync(
                 api_key="my_api_key",
                 api_secret="my_api_secret",
             )
+
+            last_sync = start_fivetran_connector_sync(
+                connector_id="my_connector_id",
+                fivetran_credentials=fivetran_credentials,
+            )
+
             return wait_for_fivetran_connector_sync(
                 connector_id="my_connector_id",
                 fivetran_credentials=fivetran_credentials,
@@ -327,14 +336,14 @@ async def verify_and_start_fivetran_connector_sync(
         ```python
         import asyncio
         from prefect_fivetran import FivetranCredentials
-        from prefect_fivetran.fivetran import start_fivetran_sync
+        from prefect_fivetran.fivetran import verify_and_start_fivetran_connector_sync
 
         fivetran_credentials = FivetranCredentials(
             api_key="my_api_key",
             api_secret="my_api_secret",
         )
         asyncio.run(
-            start_fivetran_sync(
+            verify_and_start_fivetran_connector_sync(
                 fivetran_credentials=fivetran_credentials,
                 connector_id="my_connector_id",
                 schedule_type="my_schedule_type",
@@ -353,7 +362,7 @@ async def verify_and_start_fivetran_connector_sync(
                 api_key="my_api_key",
                 api_secret="my_api_secret",
             )
-            last_sync = await start_fivetran_sync(
+            last_sync = await verify_and_start_fivetran_connector_sync(
                 fivetran_credentials=fivetran_credentials,
                 connector_id="my_connector_id",
                 schedule_type="my_schedule_type"
@@ -414,7 +423,7 @@ async def trigger_fivetran_connector_sync_and_wait_for_completion(
             api_secret="my_api_secret",
         )
         asyncio.run(
-            fivetran_sync_flow(
+            trigger_fivetran_connector_sync_and_wait_for_completion(
                 fivetran_credentials=fivetran_credentials,
                 connector_id="my_connector_id",
                 schedule_type="my_schedule_type",
@@ -435,7 +444,7 @@ async def trigger_fivetran_connector_sync_and_wait_for_completion(
                 api_key="my_api_key",
                 api_secret="my_api_secret",
             )
-            fivetran_result = await fivetran_sync_flow(
+            fivetran_result = await trigger_fivetran_connector_sync_and_wait_for_completion(
                 fivetran_credentials=fivetran_credentials,
                 connector_id="my_connector_id",
                 schedule_type="my_schedule_type",
