@@ -27,7 +27,7 @@ pip install prefect-fivetran
 ```python
 from prefect import flow
 from prefect_fivetran import FivetranCredentials
-from prefect_fivetran.connectors import fivetran_sync_flow
+from prefect_fivetran.connectors import trigger_fivetran_connector_sync_and_wait_for_completion
 
 @flow
 def my_flow():
@@ -36,10 +36,9 @@ def my_flow():
         api_key="my_api_key",
         api_secret="my_api_secret",
     )
-    fivetran_result = await fivetran_sync_flow(
+    fivetran_result = await trigger_fivetran_connector_sync_and_wait_for_completion(
         fivetran_credentials=fivetran_credentials,
         connector_id="my_connector_id",
-        schedule_type="my_schedule_type",
         poll_status_every_n_seconds=30,
     )
     ...
