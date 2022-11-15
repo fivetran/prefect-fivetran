@@ -435,7 +435,7 @@ async def trigger_fivetran_connector_sync_and_wait_for_completion(
         ```python
         from prefect import flow
         from prefect_fivetran import FivetranCredentials
-        from prefect_fivetran.connectors import fivetran_sync_flow
+        from prefect_fivetran.connectors import trigger_fivetran_connector_sync_and_wait_for_completion
 
         @flow
         def my_flow():
