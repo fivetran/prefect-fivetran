@@ -22,6 +22,15 @@ Install `prefect-fivetran` with `pip`:
 pip install prefect-fivetran
 ```
 
+Then, register the blocks in this collection to [view them in Prefect Cloud](https://orion-docs.prefect.io/ui/blocks/):
+
+```bash
+prefect block register -m prefect_fivetran
+```
+
+Note, to use the `load` method on Blocks, you must already have a block document [saved through code](https://orion-docs.prefect.io/concepts/blocks/#saving-blocks) or [saved through the UI](https://orion-docs.prefect.io/ui/blocks/).
+
+
 ### Write and run a flow
 
 ```python
