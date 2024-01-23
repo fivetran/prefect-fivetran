@@ -1,6 +1,6 @@
 """Module containing credentials for interacting with Fivetran"""
 from prefect.blocks.core import Block
-from pydantic import Field, SecretStr
+from pydantic.v1 import Field, SecretStr
 
 from prefect_fivetran.clients import FivetranClient
 
