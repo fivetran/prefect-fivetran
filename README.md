@@ -1,5 +1,17 @@
 # prefect-fivetran
 
+<p align="center">
+    <a href="https://pypi.python.org/pypi/prefect-fivetran/" alt="PyPI version">
+        <img alt="PyPI" src="https://img.shields.io/pypi/v/prefect-fivetran?color=26272B&labelColor=090422"></a>
+    <a href="https://github.com/fivetran/prefect-fivetran/" alt="Stars">
+        <img src="https://img.shields.io/github/stars/fivetran/prefect-fivetran?color=26272B&labelColor=090422"2" /></a>
+    <a href="https://pepy.tech/badge/prefect-fivetran/" alt="Downloads">
+        <img src="https://img.shields.io/pypi/dm/prefect-fivetran?color=26272B&labelColor=090422"" /></a>
+    <a href="https://github.com/fivetran/prefect-fivetran/pulse" alt="Activity">
+        <img src="https://img.shields.io/github/commit-activity/m/fivetran/prefect-fivetran?color=26272B&labelColor=090422"2" /></a>
+    <br>
+</p>
+
 ## Welcome!
 
 Prefect integrations with Fivetran
