@@ -1,6 +1,12 @@
 """Module containing credentials for interacting with Fivetran"""
 from prefect.blocks.core import Block
-from pydantic import Field, SecretStr
+from pydantic import VERSION as PYDANTIC_VERSION
+
+if PYDANTIC_VERSION.startswith("2."):
+    from pydantic.v1 import Field, SecretStr
+else:
+    from pydantic import Field, SecretStr
+
 
 from prefect_fivetran.clients import FivetranClient
 
@@ -34,6 +40,7 @@ class FivetranCredentials(Block):
 
     _block_type_name = "Fivetran Credentials"
     _logo_url = "https://images.ctfassets.net/gm98wzqotmnx/4lfv3KREIOQk1kUM74a66W/433c00edcbde38404a9c2252a721d8d1/fivetran_logo_icon_170149.png?h=250"  # noqa
+    _documentation_url = "https://fivetran.github.io/prefect-fivetran/credentials/"
 
     api_key: SecretStr = Field(
         default=..., title="API Key", description="API key from the Fivetran console."
