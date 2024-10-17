@@ -4,6 +4,9 @@
 
 Prefect integrations with Fivetran
 
+### Disclaimer:
+Please note that Fivetran no longer officially supports or maintains this repository. If a customer needs to add or modify something here, they will need to make a fork and work with it on their own. This repository is being left public and accessible for the benefit of customers who have built services around this product. Any edits or modifications are the sole responsibility of the modifying party.
+
 ## Getting Started
 
 ### Python setup
